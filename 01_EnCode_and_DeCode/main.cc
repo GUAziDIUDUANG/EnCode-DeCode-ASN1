@@ -1,24 +1,33 @@
 #define _CRT_SECURE_NO_WARNINGS
+#define DISALLOW_COPY_AND_ASSIGN(TypeName) \
+        TypeName(const TypeName&); \
+        void operator=(const TypeName&)
+        
 #include <stdio.h>
 #include <string.h>
 #include <iostream>
 #include "itcast_asn1_der.h"
 #include "itcastderlog.h"
 
+namespace {
 struct Animal_t {
  public:
-   unsigned char name[32]; //名字
-   ITCAST_UINT32 age;  //姓名
-   ITCAST_UINT32 high; //身高
+  unsigned char name[32]; //名字
+  ITCAST_UINT32 age;  //姓名
+  ITCAST_UINT32 high; //身高
 
-   Animal_t(const unsigned char* name, ITCAST_UINT32 age, ITCAST_UINT32 high)
-     :age(age), high(high) {
-     memset(this->name, 0, sizeof(name));
-     memcpy(this->name, name, strlen((char*)name) + 1);
-   }
-   Animal_t() = default;
-};
+  Animal_t(const unsigned char* name, ITCAST_UINT32 age, ITCAST_UINT32 high)
+    :age(age), high(high) {
+    memset(this->name, 0, sizeof(name));
+    memcpy(this->name, name, strlen((char*)name) + 1);
+  }
+  Animal_t() = default;
 
+ private:
+   //防止编译器生成拷贝构造和重载赋值运算符
+  DISALLOW_COPY_AND_ASSIGN(Animal_t);
+  };
+}
 //编码(有malloc)
 ITCAST_INT EnCode(Animal_t* inData, ITCAST_ANYBUF** outAnyBuf, char** outData, ITCAST_INT* count);
 //解码
@@ -89,13 +98,18 @@ ITCAST_INT EnCode(Animal_t* inData, ITCAST_ANYBUF** outAnyBuf , char** outData, 
   ITCAST_ANYBUF* outDataNode = NULL;
 
   //name编码
-
+  //字符串转换成ANYBUF
   int retval = DER_ITCAST_String_To_AnyBuf(&tmp_anybuf, inData->name, strlen((char*)inData->name));
   if (0 != retval) {
     printf("String_to_AnyBuf failed...\n");
     return -5;
   }
+  //ANYBUF编码
   retval = DER_ItAsn1_WritePrintableString(tmp_anybuf, &head);
+  if (0 != retval) {
+    printf("String_to_AnyBuf failed...\n");
+    return -12;
+  }
   tmp_anybuf = head;
 
   //age编码
@@ -128,7 +142,11 @@ ITCAST_INT EnCode(Animal_t* inData, ITCAST_ANYBUF** outAnyBuf , char** outData, 
   *outAnyBuf = outDataNode;
 
   //释放内存
-  DER_ITCAST_FreeQueue(head);
+  retval = DER_ITCAST_FreeQueue(head);
+  if (0 != retval) {
+    printf("FreeQueue failed...\n");
+    return -13;
+  }
 
   return 0;
 }
@@ -157,12 +175,11 @@ ITCAST_INT DeCode(ITCAST_ANYBUF** inData, Animal_t** outData) {
   retval = DecodeChar(head, 
                       &buf, 
                       (int*)&head->dataLen);
-  memcpy(animal->name, buf, strlen(buf));
-
   if (0 != retval) {
-    printf("ReadName failed...\n");
+    printf("DecodeChar Name failed...\n");
     return -11;
   }
+  memcpy(animal->name, buf, strlen(buf));
   
   //解码age
   retval = DER_ItAsn1_ReadInteger(tmp_anybuf->next, &animal->age);
