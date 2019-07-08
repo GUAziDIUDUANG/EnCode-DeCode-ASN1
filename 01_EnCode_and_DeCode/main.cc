@@ -217,6 +217,8 @@ ITCAST_INT writeToFile(const char* filename, const char* writeBuffer, ITCAST_INT
     return -10;
   }
 
+  //╧ь╠унд╪Ч
+  fclose(fd);
   return 0;
 }
 
