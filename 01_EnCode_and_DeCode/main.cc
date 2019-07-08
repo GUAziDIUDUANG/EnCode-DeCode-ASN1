@@ -134,6 +134,11 @@ ITCAST_INT EnCode(Animal_t* inData, ITCAST_ANYBUF** outAnyBuf , char** outData, 
 }
 //½âÂë
 ITCAST_INT DeCode(ITCAST_ANYBUF** inData, Animal_t** outData) {
+  if (NULL == inData || NULL == outData) {
+    printf("parameter is invalid...\n");
+    return 12;
+  }
+
   *outData = new Animal_t();
   Animal_t* animal = *outData;
   ITCAST_ANYBUF* head = NULL;
